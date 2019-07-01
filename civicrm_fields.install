@@ -1,0 +1,31 @@
+<?php
+
+/**
+ * Implements hook_field_schema().
+ *
+ */
+function civicrm_fields_field_schema($field) {
+  if ($field['type'] == 'civicrm_page') {
+    $schema['columns']['contribution_page'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+    $schema['columns']['event_page'] = array(
+      'type' => 'int',
+      'not null' => FALSE,
+    );
+
+    $schema['indexes'] = array(
+      'contribution_page' => array('contribution_page'),
+      'event_page' => array('event_page'),
+    );
+
+    $schema['columns']['page_type'] = array(
+      'type' => 'varchar',
+      'length' => 96,
+      'not null' => FALSE,
+    );
+
+    return $schema;
+  }
+}

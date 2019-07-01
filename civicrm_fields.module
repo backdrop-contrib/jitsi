@@ -1,0 +1,358 @@
+<?php
+  
+define('CIVICRM_EVENT_LABEL', t('Event Registration Page'));
+define('CIVICRM_CONTRIBUTION_LABEL', t('Contribution Page'));
+
+/**
+ * Implements hook_field_info().
+ *
+ */
+function civicrm_fields_field_info() {
+  return array(
+    'civicrm_page' => array(
+      'label' => t('CiviCRM Page'),
+      'description' => t('This field allows you to choose a CiviCRM page to insert into your content.'),
+      'instance_settings' => array(
+        'contribution_page_id' => 0,
+        'event_page_id' => 0,
+      ),
+      'default_widget' => 'civicrm_fields_select',
+      'default_formatter' => 'civicrm_fields_default',
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_validate().
+ *
+ */
+function civicrm_fields_field_validate($obj_type, $object, $field, $instance, $langcode, &$items, &$errors) {
+  if ($field['type'] == 'civicrm_page') {
+    $columns = array(
+     'contribution_page' => 'contribution_page_id',
+     'event_page' => 'event_page_id',
+    );
+    foreach ($items as $delta => $item) {
+      foreach ($columns as $column => $max_key) {
+        if ($instance['settings'][$max_key] && !empty($item[$column]) && $item[$column] > $instance['settings'][$max_key]) {
+          $errors[$field['field_name']][$delta][] = array(
+            'error' => 'civicrm_fields_' . $max_key,
+            'message' => t('%name: The %column may not be larger than %max.', array(
+              '%column' => $column,
+              '%name' => $instance['label'],
+              '%max' => $instance['settings'][$max_key],
+            )),
+          );
+        }
+      }
+    }
+  }
+}
+
+function civicrm_fields_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  $field = $form['#field'];
+  
+  if ($field['type'] == 'civicrm_page') {
+    $form['field']['cardinality_container']['#disabled'] = TRUE;
+    $form['field']['cardinality_container']['#description'] = t('We can insert a maximum of one CiviCRM page currently.');
+  }
+}
+
+/**
+ * Implements hook_field_is_empty().
+ *
+ */
+function civicrm_fields_field_is_empty($item, $field) {
+  if ($field['type'] == 'civicrm_page') {
+    if (empty($item['contribution_page']) && empty($item['event_page'])) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Implements hook_widget_info().
+ *
+ */
+function civicrm_fields_field_widget_info() {
+  return array(
+    'civicrm_fields_select' => array(
+      'label' => t('CiviCRM Page Select'),
+      'description' => t('Select from active CiviCRM pages.'),
+      'field types' => array('civicrm_page'),
+      'behaviors' => array(
+        'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+        'default value' => FIELD_BEHAVIOR_DEFAULT,
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_widget_form().
+ *
+ */
+function civicrm_fields_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
+  $base = $element;
+
+  if ($instance['widget']['type'] == 'civicrm_fields_select') {
+    $element['page_type'] = array(
+      '#type' => 'select',
+      '#title' => t('CiviCRM Page Type'),
+      '#default_value' => isset($items[$delta]['page_type']) ? $items[$delta]['page_type'] : NULL,
+      '#options' => civicrm_fields_pagetype(),
+    ) + $base;
+    $element['contribution_page'] = array(
+      '#type' => 'select',
+      '#title' => t('Contribution Page'),
+      '#default_value' => isset($items[$delta]['contribution_page']) ? $items[$delta]['contribution_page'] : NULL,
+      '#options' => civicrm_fields_contribution_page_options(),
+      '#states' => array(
+        'visible' => array(
+          'select[name="'. $instance['field_name'] . '[und][0][page_type]"]' => array('value' => 'civicrm/contribute/transact'),
+        ),
+      ),
+    ) + $base;
+    $element['event_page'] = array(
+      '#type' => 'select',
+      '#title' => t('Event Registration Page'),
+      '#default_value' => isset($items[$delta]['event_page']) ? $items[$delta]['event_page'] : NULL,
+      '#options' => civicrm_fields_event_page_options(),
+      '#states' => array(
+        'visible' => array(
+          'select[name="'. $instance['field_name'] . '[und][0][page_type]"]' => array('value' => 'civicrm/event/register'),
+        ),
+      ),
+    ) + $base;
+  }
+
+  return $element;
+}
+
+/**
+ * Implements hook_field_formatter_info().
+ *
+ */
+function civicrm_fields_field_formatter_info() {
+  return array(
+    'civicrm_fields_default' => array(
+      'label' => t('Embedded page'),
+      'field types' => array('civicrm_page'),
+    ),
+    'civicrm_fields_link' => array(
+      'label' => t('Button linked to page'),
+      'field types' => array('civicrm_page'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_field_formatter_view().
+ *
+ */
+function civicrm_fields_field_formatter_view($obj_type, $object, $field, $instance, $langcode, $items, $display) {
+  civicrm_initialize();
+  $element = array();
+  $settings = $display['settings'];
+
+  switch ($display['type']) {
+    case 'civicrm_fields_link':
+      foreach ($items as $delta => $item) {
+        switch ($item['page_type']) {
+          case 'civicrm/contribute/transact':
+            $contributionpage = civicrm_api3('ContributionPage', 'getsingle', [
+              'sequential' => 1,
+              'is_active' => 1,
+              'id' => $item['contribution_page'],
+            ]);
+            if (isset($contributionpage['id']) && isset($contributionpage['is_active']) && $contributionpage['is_active'] == '1') {
+              $output = _civicrm_fields_display_link($item['page_type'], $item['contribution_page'], $contributionpage['title']);
+            }
+            break;
+            
+          case 'civicrm/event/register':
+            $eventpage = civicrm_api3('Event', 'getsingle', [
+              'sequential' => 1,
+              'is_public' => 1,
+              'start_date' => ['>=' => date('Y-m-d')],
+              'end_date' => ['>=' => date('Y-m-d')],
+              'is_online_registration' => 1,
+              'id' => $item['event_page'],
+            ]);
+            if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
+              $output = _civicrm_fields_display_link($item['page_type'], $item['event_page'], $eventpage['title']);
+            }
+            break;
+            
+          default:
+            unset($element[$delta]);
+        }
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+      
+    case 'civicrm_fields_default':
+    default:
+      foreach ($items as $delta => $item) {
+        switch ($item['page_type']) {
+          case 'civicrm/contribute/transact':
+            $contributionpage = civicrm_api3('ContributionPage', 'getsingle', [
+              'sequential' => 1,
+              'is_active' => 1,
+              'id' => $item['contribution_page'],
+            ]);
+            if (isset($contributionpage['id']) && isset($contributionpage['is_active']) && $contributionpage['is_active'] == '1') {
+              $output = _civicrm_fields_inject_page($item['page_type'], $item['contribution_page']);
+            }
+            break;
+            
+          case 'civicrm/event/register':
+            $eventpage = civicrm_api3('Event', 'getsingle', [
+              'sequential' => 1,
+              'is_public' => 1,
+              'start_date' => ['>=' => date('Y-m-d')],
+              'end_date' => ['>=' => date('Y-m-d')],
+              'is_online_registration' => 1,
+              'id' => $item['event_page'],
+            ]);
+            if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
+              $output = _civicrm_fields_inject_page($item['page_type'], $item['event_page']);
+            }
+            break;
+            
+          default:
+            unset($element[$delta]);
+        }
+        $element[$delta] = array('#markup' => $output);
+      }
+      break;
+  }
+
+  return $element;
+}
+
+/**
+ * Page types currently supported.
+ *
+ */
+function civicrm_fields_pagetype($type = NULL) {
+  static $q;
+
+  if (empty($q)) {
+    $q = array(
+      'civicrm/event/register' => CIVICRM_EVENT_LABEL,
+      'civicrm/contribute/transact' => CIVICRM_CONTRIBUTION_LABEL,
+    );
+  }
+
+  if ($type) {
+    return isset($q[$type]) ? $q[$type] : '';
+  }
+
+  return $q;
+}
+
+/**
+ * Currently active contribution pages.
+ *
+ */
+function civicrm_fields_contribution_page_options() {
+  civicrm_initialize();
+  $contribution_page_options = array();
+  $contribution_activepages = civicrm_api3('ContributionPage', 'get', [
+    'sequential' => 1,
+    'is_active' => 1,
+  ]);
+  if ($contribution_activepages['count'] > 0) {
+    $contribution_page_options[0] = 'None';
+    foreach ($contribution_activepages['values'] as $contribution_activepage) {
+      $contribution_page_options[$contribution_activepage['id']] = $contribution_activepage['title'];
+    }
+  }
+  return $contribution_page_options;
+}
+
+/**
+ * Currently active event pages.
+ *
+ */
+function civicrm_fields_event_page_options() {
+  civicrm_initialize();
+  $event_page_options = array();
+  $event_activepages = civicrm_api3('Event', 'get', [
+    'sequential' => 1,
+    'is_public' => 1,
+    'start_date' => ['>=' => date('Y-m-d')],
+    'end_date' => ['>=' => date('Y-m-d')],
+    'is_online_registration' => 1,
+  ]);
+  if ($event_activepages['count'] > 0) {
+    $event_page_options[0] = 'None';
+    foreach ($event_activepages['values'] as $event_activepage) {
+      $event_page_options[$event_activepage['id']] = $event_activepage['title'];
+    }
+  }
+  return $event_page_options;
+}
+
+/**
+  * Display a button linked to CiviCRM page.
+  *
+  */
+function _civicrm_fields_display_link($type = '', $pageid = 0, $title = '') {
+  if (civicrm_fields_pagetype($type) != '' && is_numeric($pageid) && $pageid > 0) {
+    
+    $button = "<a class='civicrm_fields_button button' href='" . $type . "?reset=1&id=" . $pageid ."'>";
+    $button .= $title;
+    $button .= "</a>";
+    return $button;
+  }
+}
+
+/**
+  * Inject CiviCRM page into content.
+  *
+  */
+function _civicrm_fields_inject_page($type = '', $pageid = 0) {
+  if (civicrm_fields_pagetype($type) != '' && is_numeric($pageid) && $pageid > 0) {
+    civicrm_initialize();
+    // Initialize the system by creating a config object
+    $config = CRM_Core_Config::singleton();
+    $config->userFrameworkFrontend = TRUE;
+
+    // Load core resources
+    CRM_Core_Resources::singleton()->addCoreResources();
+
+    $args = array(
+      'id' => $pageid,
+      'reset' => 1,
+      'q' => $type,
+    );
+    
+    // invoke() requires environment variables to be set
+    $request = $_REQUEST;
+    $get = $_GET;
+    $pagetitle = backdrop_get_title();
+    foreach ( $args as $key => $value ) {
+      if ( $value !== NULL ) {
+        $_REQUEST[$key] = $_GET[$key] = $value;
+      }
+    }
+    
+    //Invoke will require the 'q' arg to be broken up.
+    $explodedargs = explode('/', $args['q']);
+    $args = array_merge($explodedargs, $args);
+    
+    ob_start(); // Start buffering
+    CRM_Core_Invoke::invoke($args); // Save output into buffer
+    $content = ob_get_clean(); // Save the buffered output and flush the buffer
+    
+    // reset the environment
+    $_REQUEST = $request;
+    $_GET = $get;
+    backdrop_set_title($pagetitle);
+    
+    return $content;
+  }
+}

@@ -1,0 +1,8 @@
+type = module
+name = CiviCRM Fields
+description = Field type that allows selection of a CiviCRM Contribution or Event Registration Page for insertion.
+package = CiviCRM-Contrib
+tags[] = fields
+backdrop = 1.x
+
+dependencies[] = civicrm
