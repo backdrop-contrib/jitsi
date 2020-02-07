@@ -95,7 +95,11 @@ function civicrm_fields_field_widget_info() {
  */
 function civicrm_fields_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $base = $element;
-
+  if ($instance['entity_type'] == 'paragraphs_item') {
+    $states_prefix = $form['#field_name'] . '[und][0][' . $instance[field_name] . '][und][0]';
+  } else {
+    $states_prefix = $instance[field_name] . '[und][0]';
+  }
   if ($instance['widget']['type'] == 'civicrm_fields_select') {
     $element['page_type'] = array(
       '#type' => 'select',
@@ -110,7 +114,7 @@ function civicrm_fields_field_widget_form(&$form, &$form_state, $field, $instanc
       '#options' => civicrm_fields_contribution_page_options(),
       '#states' => array(
         'visible' => array(
-          'select[name="'. $instance['field_name'] . '[und][0][page_type]"]' => array('value' => 'civicrm/contribute/transact'),
+          'select[name="'. $states_prefix . '[page_type]"]' => array('value' => 'civicrm/contribute/transact'),
         ),
       ),
     ) + $base;
@@ -121,7 +125,7 @@ function civicrm_fields_field_widget_form(&$form, &$form_state, $field, $instanc
       '#options' => civicrm_fields_event_page_options(),
       '#states' => array(
         'visible' => array(
-          'select[name="'. $instance['field_name'] . '[und][0][page_type]"]' => array('value' => 'civicrm/event/register'),
+          'select[name="'. $states_prefix . '[page_type]"]' => array('value' => 'civicrm/event/register'),
         ),
       ),
     ) + $base;
