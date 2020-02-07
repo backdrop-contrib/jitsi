@@ -175,12 +175,11 @@ function civicrm_fields_field_formatter_view($obj_type, $object, $field, $instan
             $eventpage = civicrm_api3('Event', 'getsingle', [
               'sequential' => 1,
               'is_public' => 1,
-              'start_date' => ['>=' => date('Y-m-d')],
-              'end_date' => ['>=' => date('Y-m-d')],
+              'is_active' => 1,
               'is_online_registration' => 1,
               'id' => $item['event_page'],
             ]);
-            if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
+            if (isset($eventpage['id'])) {
               $output = _civicrm_fields_display_link($item['page_type'], $item['event_page'], $eventpage['title']);
             }
             break;
@@ -211,12 +210,11 @@ function civicrm_fields_field_formatter_view($obj_type, $object, $field, $instan
             $eventpage = civicrm_api3('Event', 'getsingle', [
               'sequential' => 1,
               'is_public' => 1,
-              'start_date' => ['>=' => date('Y-m-d')],
-              'end_date' => ['>=' => date('Y-m-d')],
+              'is_active' => 1,
               'is_online_registration' => 1,
               'id' => $item['event_page'],
             ]);
-            if (isset($eventpage['id']) && isset($eventpage['is_active']) && $eventpage['is_active'] == '1') {
+            if (isset($eventpage['id'])) {
               $output = _civicrm_fields_inject_page($item['page_type'], $item['event_page']);
             }
             break;
@@ -283,8 +281,7 @@ function civicrm_fields_event_page_options() {
   $event_activepages = civicrm_api3('Event', 'get', [
     'sequential' => 1,
     'is_public' => 1,
-    'start_date' => ['>=' => date('Y-m-d')],
-    'end_date' => ['>=' => date('Y-m-d')],
+    'is_active' => 1,
     'is_online_registration' => 1,
   ]);
   if ($event_activepages['count'] > 0) {
@@ -303,8 +300,8 @@ function civicrm_fields_event_page_options() {
 function _civicrm_fields_display_link($type = '', $pageid = 0, $title = '') {
   if (civicrm_fields_pagetype($type) != '' && is_numeric($pageid) && $pageid > 0) {
     
-    $button = "<a class='civicrm_fields_button button' href='" . $type . "?reset=1&id=" . $pageid ."'>";
-    $button .= $title;
+    $button = "<a class='civicrm_fields_button button' href='/" . $type . "?reset=1&id=" . $pageid ."'>";
+    $button .= civicrm_fields_pagetype($type) . " " . $title;
     $button .= "</a>";
     return $button;
   }
