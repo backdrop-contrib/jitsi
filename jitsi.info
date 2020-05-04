@@ -1,8 +1,6 @@
 type = module
-name = CiviCRM Fields
-description = Field type that allows selection of a CiviCRM Contribution or Event Registration Page for insertion.
-package = CiviCRM-Contrib
+name = Jitsi Meet field
+description = Field type that allows a Jitsi Meet video conference to be added.
+package = Jitsi
 tags[] = fields
 backdrop = 1.x
-
-dependencies[] = civicrm
