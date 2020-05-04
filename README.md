@@ -1,8 +1,7 @@
-# CiviCRM Fields
+# Jitsi Meet Fields
 
 This is module is in early development. It allows a user to create a field that
-will allow selection of a CiviCRM Contribution or Event Registration page, 
-which can then be inserted onto the page when the field is displayed.
+will embed a Jitsi Meet video conference into the page.
 
 ## Installation
 
@@ -10,28 +9,26 @@ which can then be inserted onto the page when the field is displayed.
 
 ## Configuration and Usage
 
-- Make sure CiviCRM is installed and you have one or more active Contribution Pages
-set up and/or an active CiviEvent.
 - Install this module as usual
-- Add a field of the "CiviCRM Page" type to an entity (e.g. a content type or
-   taxonomy term)
-- Create content of that type and you should be able to select a page to insert
+- Add a field of the "Jitsi Meet" type to an entity (e.g. a content type or
+  taxonomy term)
+- Create content of that type and you should see a checkbox to "Add a Jitsi Meet
+  video conference."
 
-More details may be found (or added) in the [Wiki](https://github.com/backdrop-contrib/civicrm_fields/wiki)
+More details may be found (or added) in the [Wiki](https://github.com/backdrop-contrib/jitsi/wiki)
 
 ## Issues
 
-Bugs and Feature requests should be reported in the [Issue Queue](https://github.com/backdrop-contrib/civicrm_fields/issues)
+Bugs and Feature requests should be reported in the [Issue Queue](https://github.com/backdrop-contrib/jitsi/issues)
 
 ## Current Maintainers
 
 - [Laryn Kragt Bakker](https://github.com/laryn), [CEDC.org](https://CEDC.org)
-- Collaboration welcome!
+- Collaboration and co-maintainers welcome!
 
 ## Credits
 
 - Created by [Laryn Kragt Bakker](https://github.com/laryn), [CEDC.org](https://CEDC.org)
-- Inspired by [CiviCRM Wordpress integration](https://github.com/civicrm/civicrm-wordpress) shortcodes functionality.
 
 ## License
 
