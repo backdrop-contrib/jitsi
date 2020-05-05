@@ -10,6 +10,11 @@ function jitsi_field_schema($field) {
       'type' => 'int',
       'not null' => FALSE,
     );
+    $schema['columns']['room_name'] = array(
+      'type' => 'varchar',
+      'not null' => FALSE,
+      'length' => 255,
+    );
     return $schema;
   }
 }

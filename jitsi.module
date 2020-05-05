@@ -11,6 +11,7 @@ function jitsi_field_info() {
       'description' => t('This field allows you to insert a Jitsi Meet video conference into your content.'),
       'instance_settings' => array(
         'add_jitsi' => 0,
+        'room_name' => '',
       ),
       'default_widget' => 'jitsi_meet',
       'default_formatter' => 'jitsi_default',
@@ -78,42 +79,33 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
     $element['add_jitsi'] = array(
       '#type' => 'checkbox',
       '#title' => t('Add a Jitsi Meet video conference'),
+      '#default_value' => !empty($element['#entity']->{$instance['field_name']}['und'][0]['add_jitsi']) ? $element['#entity']->{$instance['field_name']}['und'][0]['add_jitsi'] : 0,
     ) + $base;
-    
-    // TODO: Further widget options here. Alternate host? Password? Other Jitsi options?
-    /*
-    $element['page_type'] = array(
-      '#type' => 'select',
-      '#title' => t('CiviCRM Page Type'),
-      '#default_value' => isset($items[$delta]['page_type']) ? $items[$delta]['page_type'] : NULL,
-      '#options' => jitsi_pagetype(),
-    ) + $base;
-    $element['contribution_page'] = array(
-      '#type' => 'select',
-      '#title' => t('Contribution Page'),
-      '#default_value' => isset($items[$delta]['contribution_page']) ? $items[$delta]['contribution_page'] : NULL,
-      '#options' => jitsi_contribution_page_options(),
+    $element['room_name'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Room name'),
+      '#description' => t('Leave blank for default. Using a simple room name increases the chance that someone you don\'t intend could guess the name or accidentally enter.'),
+      '#element_validate' => array('jitsi_room_name_validate'),
+      '#default_value' => !empty($items[$delta]['room_name']) ? $items[$delta]['room_name'] : openssl_encrypt('test'),
       '#states' => array(
         'visible' => array(
-          'select[name="'. $states_prefix . '[page_type]"]' => array('value' => 'civicrm/contribute/transact'),
+          ':input[name="' . $instance['field_name'] . '[und][0][add_jitsi]"]' => array('checked' => TRUE),
         ),
       ),
-    ) + $base;
-    $element['event_page'] = array(
-      '#type' => 'select',
-      '#title' => t('Event Registration Page'),
-      '#default_value' => isset($items[$delta]['event_page']) ? $items[$delta]['event_page'] : NULL,
-      '#options' => jitsi_event_page_options(),
-      '#states' => array(
-        'visible' => array(
-          'select[name="'. $states_prefix . '[page_type]"]' => array('value' => 'civicrm/event/register'),
-        ),
-      ),
-    ) + $base;
-    */
+    );
   }
-
   return $element;
+}
+
+/**
+ * Form element validation for Jitsi room name.
+ */
+function jitsi_room_name_validate($form, &$form_state) {
+  if (empty($form_state['values'][$form['#parents'][0]]['und'][0]['room_name'])) {
+    $site_name = config_get_translated('system.core', 'site_name');
+    $key = settings_get('hash_salt');
+    $form_state['values'][$form['#parents'][0]]['und'][0]['room_name'] = $site_name . ' Video ID ' . substr(backdrop_hmac_base64($site_name . $obj_type . $object->type . time(), $key), 0 , 16);
+  }
 }
 
 /**
@@ -140,14 +132,14 @@ function jitsi_field_formatter_info() {
 function jitsi_field_formatter_view($obj_type, $object, $field, $instance, $langcode, $items, $display) {
   $element = array();
   $settings = $display['settings'];
-  $output = "No jitsi";
+  $output = '';
 
   switch ($display['type']) {
     case 'jitsi_link':
       // Button linked to Jitsi Meet page.
       foreach ($items as $delta => $item) {
         if ($item['add_jitsi']) {
-          $output = "Add jitsi link";
+          $output = "TODO: Add jitsi link";
         }
         $element[$delta] = array('#markup' => $output);
       }
@@ -163,11 +155,12 @@ function jitsi_field_formatter_view($obj_type, $object, $field, $instance, $lang
             'weight' => 10,
             )
           );
+          $room_name = $object->{$instance['field_name']}['und'][0]['room_name'];
           $output = '<div id="meet"></div>';
           backdrop_add_js("
             const domain = 'meet.jit.si';
             const options = {
-                roomName: 'JitsiMeetAPIExample_new',
+                roomName: '{$room_name}',
                 width: '100%',
                 height: 700,
                 noSSL: false,
