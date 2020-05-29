@@ -12,6 +12,7 @@ function jitsi_field_info() {
       'instance_settings' => array(
         'add_jitsi' => 0,
         'room_name' => '',
+        'subject' => '',
       ),
       'default_widget' => 'jitsi_meet',
       'default_formatter' => 'jitsi_default',
@@ -81,6 +82,18 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
       '#title' => t('Add a Jitsi Meet video conference'),
       '#default_value' => !empty($element['#entity']->{$instance['field_name']}['und'][0]['add_jitsi']) ? $element['#entity']->{$instance['field_name']}['und'][0]['add_jitsi'] : 0,
     ) + $base;
+    $element['subject'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Subject'),
+      '#description' => t('What is the subject of your meeting?'),
+      '#default_value' => !empty($items[$delta]['subject']) ? $items[$delta]['subject'] : '',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="' . $instance['field_name'] . '[und][0][add_jitsi]"]' => array('checked' => TRUE),
+        ),
+      ),
+    ) + $base;
+    // TODO: Make an advanced fieldset that is collapsed by default? So Room Name is hidden by default.
     $element['room_name'] = array(
       '#type' => 'textfield',
       '#title' => t('Room name'),
@@ -92,7 +105,7 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
           ':input[name="' . $instance['field_name'] . '[und][0][add_jitsi]"]' => array('checked' => TRUE),
         ),
       ),
-    );
+    ) + $base;
   }
   return $element;
 }
@@ -104,7 +117,7 @@ function jitsi_room_name_validate($form, &$form_state) {
   if (empty($form_state['values'][$form['#parents'][0]]['und'][0]['room_name'])) {
     $site_name = config_get_translated('system.core', 'site_name');
     $key = settings_get('hash_salt');
-    $form_state['values'][$form['#parents'][0]]['und'][0]['room_name'] = $site_name . ' Video ID ' . substr(backdrop_hmac_base64($site_name . $obj_type . $object->type . time(), $key), 0 , 16);
+    $form_state['values'][$form['#parents'][0]]['und'][0]['room_name'] = substr(backdrop_hmac_base64($site_name . $obj_type . $object->type . time(), $key), 0 , 32);
   }
 }
 
@@ -156,6 +169,7 @@ function jitsi_field_formatter_view($obj_type, $object, $field, $instance, $lang
             )
           );
           $room_name = $object->{$instance['field_name']}['und'][0]['room_name'];
+          $subject = $object->{$instance['field_name']}['und'][0]['subject'];
           $output = '<div id="meet"></div>';
           backdrop_add_js("
             const domain = 'meet.jit.si';
@@ -184,7 +198,7 @@ function jitsi_field_formatter_view($obj_type, $object, $field, $instance, $lang
             };
             const api = new JitsiMeetExternalAPI(domain, options);
             api.executeCommand('password', 'securepassword!');
-            api.executeCommand('subject', backdrop_get_title());
+            api.executeCommand('subject', '{$subject}');
           ", array(
             'type' => 'inline',
             'scope' => 'footer',
