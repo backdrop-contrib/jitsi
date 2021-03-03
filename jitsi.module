@@ -21,12 +21,23 @@ function jitsi_field_info() {
 }
 
 /**
- * Implements hook_field_validate().
+ * Implements hook_field_presave().
  *
  */
-function jitsi_field_validate($obj_type, $object, $field, $instance, $langcode, &$items, &$errors) {
+function jitsi_field_presave($obj_type, $object, $field, $instance, $langcode, &$items, &$errors) {
   if ($field['type'] == 'jitsi') {
-    // Validate functions here.
+    // Check values here to automatically replace empty values with defaults.
+    // Cardinality is locked at 1 so we can assume that the primary key is 0.
+    if ($items[0]['add_jitsi']) {
+      if (empty($items[0]['room_name'])) {
+        $site_name = config_get_translated('system.core', 'site_name');
+        $key = settings_get('hash_salt');
+        $items[0]['room_name'] = substr(backdrop_hmac_base64($site_name . $obj_type . $object->type . time(), $key), 0 , 32);
+      }
+      if (empty($items[0]['subject'])) {
+        $items[0]['subject'] = t('Video Conference Meeting');
+      }
+    }
   }
 }
 
@@ -102,13 +113,11 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
         ),
       ),
     ) + $base;
-    // TODO: Make an advanced fieldset that is collapsed by default? So Room Name is hidden by default.
     $element['room_name'] = array(
       '#type' => 'textfield',
       '#title' => t('Room name'),
       '#description' => t('Leave blank for default. Using a simple room name increases the chance that someone you don\'t intend could guess the name or accidentally enter.'),
-      '#element_validate' => array('jitsi_room_name_validate'),
-      '#default_value' => !empty($items[$delta]['room_name']) ? $items[$delta]['room_name'] : openssl_encrypt('test'),
+      '#default_value' => !empty($items[$delta]['room_name']) ? $items[$delta]['room_name'] : '',
       '#states' => array(
         'visible' => array(
           ':input[name="' . $inputname . '"]' => array('checked' => TRUE),
@@ -117,17 +126,6 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
     ) + $base;
   }
   return $element;
-}
-
-/**
- * Form element validation for Jitsi room name.
- */
-function jitsi_room_name_validate($form, &$form_state) {
-  if (empty($form_state['values'][$form['#parents'][0]]['und'][0]['room_name'])) {
-    $site_name = config_get_translated('system.core', 'site_name');
-    $key = settings_get('hash_salt');
-    $form_state['values'][$form['#parents'][0]]['und'][0]['room_name'] = substr(backdrop_hmac_base64($site_name . $obj_type . $object->type . time(), $key), 0 , 32);
-  }
 }
 
 /**

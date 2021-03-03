@@ -1,6 +1,6 @@
-type = module
 name = Jitsi Meet field
 description = Field type that allows a Jitsi Meet video conference to be added.
+type = module
 package = Jitsi
 tags[] = fields
 backdrop = 1.x
