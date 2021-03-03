@@ -76,6 +76,15 @@ function jitsi_field_widget_info() {
  */
 function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $base = $element;
+  $inputname = '';
+  $prefix = '';
+  $suffix = '';
+  foreach ($form['#parents'] as $parent) {
+    $inputname .= $prefix . $parent . $suffix;
+    $prefix = '[';
+    $suffix = ']';
+  }
+  $inputname .= '[' . $instance['field_name'] . '][' . $langcode . '][0][add_jitsi]';
   if ($instance['widget']['type'] == 'jitsi_meet') {
     $element['add_jitsi'] = array(
       '#type' => 'checkbox',
@@ -89,7 +98,7 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
       '#default_value' => !empty($items[$delta]['subject']) ? $items[$delta]['subject'] : '',
       '#states' => array(
         'visible' => array(
-          ':input[name="' . $instance['field_name'] . '[und][0][add_jitsi]"]' => array('checked' => TRUE),
+          ':input[name="' . $inputname . '"]' => array('checked' => TRUE),
         ),
       ),
     ) + $base;
@@ -102,7 +111,7 @@ function jitsi_field_widget_form(&$form, &$form_state, $field, $instance, $langc
       '#default_value' => !empty($items[$delta]['room_name']) ? $items[$delta]['room_name'] : openssl_encrypt('test'),
       '#states' => array(
         'visible' => array(
-          ':input[name="' . $instance['field_name'] . '[und][0][add_jitsi]"]' => array('checked' => TRUE),
+          ':input[name="' . $inputname . '"]' => array('checked' => TRUE),
         ),
       ),
     ) + $base;
