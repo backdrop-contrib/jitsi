@@ -1,5 +1,44 @@
 <?php
-  
+
+ /**
+ * Implements hook_permission().
+ */
+function jitsi_permission() {
+  return array(
+    'administer jitsi' => array(
+      'title' => t('Administer Jitsi'),
+      'description' => t('Permission to manage Jitsi settings.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function jitsi_menu() {
+  $items['admin/config/services/jitsi'] = array(
+    'title' => 'Jitsi Meet',
+    'description' => 'Settings for the Jitsi Meet integration',
+    'page callback' => 'backdrop_get_form',
+    'page arguments' => array('jitsi_admin_form'),
+    'access callback' => 'user_access',
+    'access arguments' => array('administer jitsi'),
+    'file' => 'jitsi.admin.inc',
+  );
+  return $items;
+}
+
+/**
+  * Implements hook_config_info().
+  */
+function jitsi_config_info() {
+  $prefixes['jitsi.settings'] = array(
+    'label' => t('Jitsi settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
+}
+
 /**
  * Implements hook_field_info().
  *
@@ -43,7 +82,7 @@ function jitsi_field_presave($obj_type, $object, $field, $instance, $langcode, &
 
 function jitsi_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
   $field = $form['#field'];
-  
+
   if ($field['type'] == 'jitsi') {
     $form['field']['cardinality_container']['#disabled'] = TRUE;
     $form['field']['cardinality_container']['#description'] = t('We can insert a maximum of one Jitsi Meet conference currently.');
@@ -164,12 +203,13 @@ function jitsi_field_formatter_view($obj_type, $object, $field, $instance, $lang
         $element[$delta] = array('#markup' => $output);
       }
       break;
-      
+
     case 'jitsi_default':
     default:
+      $domain = config_get('jitsi.settings', 'domain');
       foreach ($items as $delta => $item) {
         if ($item['add_jitsi']) {
-          backdrop_add_js('https://meet.jit.si/external_api.js', array(
+          backdrop_add_js('https://' . $domain . '/external_api.js', array(
             'type' => 'external',
             'scope' => 'footer',
             'weight' => 10,
@@ -179,7 +219,7 @@ function jitsi_field_formatter_view($obj_type, $object, $field, $instance, $lang
           $subject = $object->{$instance['field_name']}['und'][0]['subject'];
           $output = '<div id="meet"></div>';
           backdrop_add_js("
-            const domain = 'meet.jit.si';
+            const domain = '{$domain}';
             const options = {
                 roomName: '{$room_name}',
                 width: '100%',
